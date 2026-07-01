@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conversor de Cartera VIVA — Sikaffi & Abogados</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root {
+    --verde-oscuro:#1a3a2a;--verde-medio:#2d6a4f;--verde-vivo:#40916c;
+    --verde-claro:#74c69d;--verde-suave:#d8f3dc;--blanco:#ffffff;
+    --gris-10:#f8faf9;--gris-20:#eef2f0;--gris-40:#c8d5ce;
+    --gris-60:#8fa99e;--gris-80:#3d524a;--negro:#0d1f18;
+    --rojo:#c1392b;--rojo-suave:#fdecea;
+    --amarillo:#b07d10;--amarillo-suave:#fef9ec;
+    --sombra:0 2px 8px rgba(13,31,24,0.08),0 1px 3px rgba(13,31,24,0.05);
+    --sombra-hover:0 8px 24px rgba(13,31,24,0.12),0 2px 8px rgba(13,31,24,0.08);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:var(--gris-10);color:var(--negro);min-height:100vh;display:flex;flex-direction:column;}
+  header{background:var(--verde-oscuro);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100;border-bottom:2px solid var(--verde-medio);}
+  .header-brand{display:flex;align-items:center;gap:12px;}
+  .header-logo{width:36px;height:36px;background:var(--verde-vivo);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .header-title{color:var(--blanco);font-size:15px;font-weight:600;}
+  .header-sub{color:var(--verde-claro);font-size:12px;margin-top:1px;}
+  .header-badge{background:var(--verde-medio);color:var(--verde-claro);font-size:11px;font-weight:500;padding:4px 10px;border-radius:20px;font-family:'JetBrains Mono',monospace;}
+  main{max-width:860px;margin:0 auto;padding:2rem 1.5rem 4rem;width:100%;flex:1;}
+  .step{background:var(--blanco);border-radius:14px;box-shadow:var(--sombra);margin-bottom:1.5rem;overflow:hidden;border:1px solid var(--gris-20);}
+  .step-header{padding:1.25rem 1.5rem;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--gris-20);background:var(--gris-10);}
+  .step-num{width:32px;height:32px;border-radius:50%;background:var(--gris-40);color:var(--blanco);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+  .step-num.active{background:var(--verde-oscuro);box-shadow:0 0 0 3px var(--verde-suave);}
+  .step-num.done{background:var(--verde-vivo);}
+  .step-label{font-size:14px;font-weight:600;color:var(--gris-80);}
+  .step-desc{font-size:12px;color:var(--gris-60);margin-top:2px;}
+  .step-body{padding:1.5rem;}
+  .drop-zone{border:2px dashed var(--gris-40);border-radius:10px;padding:2.5rem 2rem;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--gris-10);position:relative;}
+  .drop-zone:hover,.drop-zone.drag-over{border-color:var(--verde-vivo);background:var(--verde-suave);}
+  .drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .drop-icon{font-size:36px;margin-bottom:10px;}
+  .drop-title{font-size:15px;font-weight:600;color:var(--verde-oscuro);margin-bottom:4px;}
+  .drop-hint{font-size:12px;color:var(--gris-60);}
+  .file-loaded{border:2px solid var(--verde-claro);background:var(--verde-suave);border-radius:10px;padding:1rem 1.25rem;display:flex;align-items:center;gap:12px;}
+  .file-loaded-icon{font-size:28px;}
+  .file-loaded-name{font-size:14px;font-weight:600;color:var(--verde-oscuro);}
+  .file-loaded-meta{font-size:12px;color:var(--verde-vivo);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+  .btn-cambiar{margin-left:auto;background:none;border:1px solid var(--verde-claro);color:var(--verde-oscuro);font-size:12px;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:500;}
+  .btn-cambiar:hover{background:var(--verde-claro);}
+  .ciclo-detector{background:var(--amarillo-suave);border:1px solid #f0d080;border-radius:8px;padding:.875rem 1rem;display:flex;align-items:center;gap:10px;margin-top:1rem;}
+  .ciclo-detector.detectado{background:var(--verde-suave);border-color:var(--verde-claro);}
+  .ciclo-badge{background:var(--verde-oscuro);color:var(--blanco);font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .ciclo-info-title{font-weight:600;color:var(--verde-oscuro);font-size:13px;}
+  .ciclo-info-sub{font-size:11px;color:var(--gris-60);margin-top:2px;}
+  .ciclo-manual{margin-top:1rem;}
+  .ciclo-manual label{font-size:12px;font-weight:600;color:var(--gris-80);display:block;margin-bottom:6px;}
+  .ciclo-manual select{width:100%;padding:10px 14px;border:1px solid var(--gris-40);border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;color:var(--negro);background:var(--blanco);cursor:pointer;outline:none;}
+  .ciclo-manual select:focus{border-color:var(--verde-vivo);}
+  .stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1rem;}
+  .stat-card{background:var(--gris-10);border:1px solid var(--gris-20);border-radius:10px;padding:1rem;text-align:center;}
+  .stat-num{font-size:28px;font-weight:700;color:var(--verde-oscuro);font-family:'JetBrains Mono',monospace;line-height:1;}
+  .stat-label{font-size:11px;color:var(--gris-60);margin-top:4px;text-transform:uppercase;letter-spacing:.05em;}
+  .progress-wrap{margin-top:1rem;}
+  .progress-label{display:flex;justify-content:space-between;font-size:12px;color:var(--gris-60);margin-bottom:6px;}
+  .progress-bar{height:8px;background:var(--gris-20);border-radius:100px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--verde-vivo),var(--verde-claro));border-radius:100px;width:0%;transition:width .3s ease;}
+  .btn-procesar{width:100%;background:var(--verde-oscuro);color:var(--blanco);border:none;border-radius:10px;padding:14px 24px;font-size:15px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:1.5rem;}
+  .btn-procesar:hover:not(:disabled){background:var(--verde-medio);transform:translateY(-1px);box-shadow:var(--sombra-hover);}
+  .btn-procesar:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+  .output-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+  .output-card{border:1px solid var(--gris-20);border-radius:10px;overflow:hidden;}
+  .output-card-header{padding:.875rem 1rem;background:var(--verde-oscuro);display:flex;align-items:center;gap:10px;}
+  .output-card-header.detalle{background:var(--verde-medio);}
+  .output-card-icon{font-size:20px;}
+  .output-card-title{color:var(--blanco);font-size:14px;font-weight:600;}
+  .output-card-sub{color:var(--verde-claro);font-size:11px;margin-top:1px;}
+  .output-card-body{padding:1rem;background:var(--gris-10);}
+  .output-meta{font-size:12px;color:var(--gris-60);font-family:'JetBrains Mono',monospace;margin-bottom:10px;line-height:1.8;white-space:pre;}
+  .btn-descargar{width:100%;background:var(--verde-vivo);color:var(--blanco);border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn-descargar:hover{background:var(--verde-oscuro);transform:translateY(-1px);}
+  .preview-wrap{margin-top:1rem;overflow-x:auto;border:1px solid var(--gris-20);border-radius:8px;}
+  .preview-label{font-size:11px;font-weight:600;color:var(--gris-60);text-transform:uppercase;letter-spacing:.05em;padding:8px 12px;background:var(--gris-20);border-bottom:1px solid var(--gris-40);}
+  .preview-table{width:100%;border-collapse:collapse;font-size:11px;font-family:'JetBrains Mono',monospace;}
+  .preview-table th{background:var(--verde-oscuro);color:var(--verde-claro);padding:6px 10px;text-align:left;white-space:nowrap;font-weight:500;font-size:10px;text-transform:uppercase;}
+  .preview-table td{padding:5px 10px;border-bottom:1px solid var(--gris-20);white-space:nowrap;color:var(--gris-80);max-width:220px;overflow:hidden;text-overflow:ellipsis;}
+  .preview-table tr:last-child td{border-bottom:none;}
+  .preview-table tr:hover td{background:var(--verde-suave);}
+  .alert{border-radius:8px;padding:.875rem 1rem;font-size:13px;display:flex;align-items:flex-start;gap:10px;margin-top:1rem;}
+  .alert.error{background:var(--rojo-suave);color:var(--rojo);border:1px solid #f5c6c2;}
+  .alert.warning{background:var(--amarillo-suave);color:var(--amarillo);border:1px solid #f0d080;}
+  .alert.success{background:var(--verde-suave);color:var(--verde-oscuro);border:1px solid var(--verde-claro);}
+  .log-box{background:var(--negro);border-radius:8px;padding:1rem;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--verde-claro);max-height:180px;overflow-y:auto;line-height:1.8;margin-top:1rem;}
+  .log-line{display:block;}
+  .log-line.ok{color:var(--verde-claro);}
+  .log-line.warn{color:#f0c040;}
+  .log-line.info{color:#80c0ff;}
+  .hidden{display:none!important;}
+  /* DIVISION */
+  .division-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;}
+  .division-card{background:var(--gris-10);border:1px solid var(--gris-20);border-radius:10px;padding:1.25rem;}
+  .division-card-title{font-size:13px;font-weight:700;color:var(--verde-oscuro);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+  .division-card-sub{font-size:11px;color:var(--gris-60);margin-bottom:1rem;}
+  .division-control{display:flex;align-items:center;gap:10px;}
+  .division-btn{width:32px;height:32px;border-radius:50%;border:2px solid var(--verde-claro);background:var(--blanco);color:var(--verde-oscuro);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;line-height:1;}
+  .division-btn:hover{background:var(--verde-suave);}
+  .division-num{font-size:32px;font-weight:700;color:var(--verde-oscuro);font-family:'JetBrains Mono',monospace;min-width:40px;text-align:center;}
+  .division-label{font-size:11px;color:var(--gris-60);margin-top:4px;text-align:center;}
+  .division-preview{margin-top:1rem;background:var(--blanco);border:1px solid var(--gris-20);border-radius:8px;padding:.75rem 1rem;}
+  .division-preview-title{font-size:10px;font-weight:600;color:var(--gris-60);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+  .division-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .chip{background:var(--verde-suave);color:var(--verde-oscuro);font-size:11px;font-family:'JetBrains Mono',monospace;padding:3px 10px;border-radius:20px;border:1px solid var(--verde-claro);}
+  /* PARTES DESCARGA */
+  .partes-grid{display:flex;flex-direction:column;gap:.75rem;}
+  .parte-row{display:flex;align-items:center;gap:10px;background:var(--gris-10);border:1px solid var(--gris-20);border-radius:8px;padding:.75rem 1rem;}
+  .parte-badge{background:var(--verde-oscuro);color:var(--blanco);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;padding:3px 10px;border-radius:6px;flex-shrink:0;}
+  .parte-badge.det{background:var(--verde-medio);}
+  .parte-info{flex:1;font-size:12px;color:var(--gris-60);font-family:'JetBrains Mono',monospace;}
+  .btn-parte{background:var(--verde-vivo);color:var(--blanco);border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;white-space:nowrap;}
+  .btn-parte:hover{background:var(--verde-oscuro);}
+  .partes-section-title{font-size:12px;font-weight:700;color:var(--verde-oscuro);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;margin-top:1rem;}
+  .partes-section-title:first-child{margin-top:0;}
+  footer{background:var(--verde-oscuro);color:var(--gris-60);text-align:center;padding:1rem;font-size:11px;border-top:1px solid var(--verde-medio);}
+  footer strong{color:var(--verde-claro);}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-brand">
+    <div class="header-logo">⚖️</div>
+    <div>
+      <div class="header-title">Conversor de Cartera VIVA</div>
+      <div class="header-sub">Sikaffi & Abogados — Cochabamba, Bolivia</div>
+    </div>
+  </div>
+  <div class="header-badge">CABECERA + DETALLE</div>
+</header>
+<main>
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num active" id="num1">1</div>
+      <div>
+        <div class="step-label">Cargar archivo de cartera asignada</div>
+        <div class="step-desc">Archivo Excel (.xlsx / .xls) recibido de VIVA</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div id="dropZone" class="drop-zone">
+        <input type="file" id="fileInput" accept=".xlsx,.xls" />
+        <div class="drop-icon">📂</div>
+        <div class="drop-title">Arrastra tu archivo aquí o haz clic para seleccionar</div>
+        <div class="drop-hint">Formatos: .xlsx · .xls — sin límite de filas</div>
+      </div>
+      <div id="fileLoaded" class="file-loaded hidden">
+        <div class="file-loaded-icon">📊</div>
+        <div>
+          <div class="file-loaded-name" id="fileName">—</div>
+          <div class="file-loaded-meta" id="fileMeta">—</div>
+        </div>
+        <button class="btn-cambiar" onclick="resetFile()">Cambiar archivo</button>
+      </div>
+      <div id="cicloDetectado" class="ciclo-detector hidden">
+        <div class="ciclo-badge" id="cicloBadge">—</div>
+        <div>
+          <div class="ciclo-info-title" id="cicloNombre">—</div>
+          <div class="ciclo-info-sub">Detectado automáticamente desde el nombre del archivo</div>
+        </div>
+      </div>
+      <div id="cicloManual" class="ciclo-manual hidden">
+        <div class="alert warning" style="margin-top:0">
+          ⚠️ No se detectó el tipo de cartera en el nombre del archivo. Selecciónalo manualmente.
+        </div>
+        <br>
+        <label for="cicloSelect">Tipo de cartera / Ciclo:</label>
+        <select id="cicloSelect" onchange="onCicloManualChange()">
+          <option value="">— Selecciona el tipo —</option>
+          <option value="1">1 — NORMAL</option>
+          <option value="3">3 — PERIODOS PASADOS</option>
+          <option value="4">4 — NUMERO PROPIO</option>
+          <option value="5">5 — FTTH</option>
+          <option value="7">7 — CARTERA ESPECIAL RX</option>
+          <option value="8">8 — CARTERA ESPECIAL DX</option>
+        </select>
+      </div>
+      <div id="statsBar" class="stats-bar hidden">
+        <div class="stat-card"><div class="stat-num" id="statFilas">0</div><div class="stat-label">Filas totales</div></div>
+        <div class="stat-card"><div class="stat-num" id="statColumnas">0</div><div class="stat-label">Columnas</div></div>
+        <div class="stat-card"><div class="stat-num" id="statCiclo">—</div><div class="stat-label">Ciclo asignado</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num" id="num2">2</div>
+      <div>
+        <div class="step-label">Procesar y generar archivos</div>
+        <div class="step-desc">Genera CABECERA.csv + DETALLE.csv separados por pipe |</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <button class="btn-procesar" id="btnProcesar" disabled onclick="procesarCartera()">
+        <span>⚙️</span> Procesar cartera y generar archivos
+      </button>
+      <div id="progressWrap" class="progress-wrap hidden">
+        <div class="progress-label"><span id="progressMsg">Procesando...</span><span id="progressPct">0%</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+      <div id="logBox" class="log-box hidden"></div>
+    </div>
+  </div>
+
+  <!-- PASO 3: DIVISIÓN -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num" id="num3">3</div>
+      <div>
+        <div class="step-label">Configurar división de archivos</div>
+        <div class="step-desc">Divide CABECERA y DETALLE en partes iguales para no saturar tu sistema</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="division-grid">
+        <!-- CABECERA -->
+        <div class="division-card">
+          <div class="division-card-title">📋 CABECERA</div>
+          <div class="division-card-sub">¿En cuántas partes dividir?</div>
+          <div class="division-control">
+            <button class="division-btn" onclick="cambiarDivision('cab',-1)">−</button>
+            <div style="text-align:center">
+              <div class="division-num" id="numCab">1</div>
+              <div class="division-label">parte(s)</div>
+            </div>
+            <button class="division-btn" onclick="cambiarDivision('cab',+1)">+</button>
+          </div>
+          <div class="division-preview">
+            <div class="division-preview-title">Distribución estimada</div>
+            <div class="division-chips" id="chipsCab"><div class="chip">1 archivo completo</div></div>
+          </div>
+        </div>
+        <!-- DETALLE -->
+        <div class="division-card">
+          <div class="division-card-title">📄 DETALLE</div>
+          <div class="division-card-sub">¿En cuántas partes dividir?</div>
+          <div class="division-control">
+            <button class="division-btn" onclick="cambiarDivision('det',-1)">−</button>
+            <div style="text-align:center">
+              <div class="division-num" id="numDet">1</div>
+              <div class="division-label">parte(s)</div>
+            </div>
+            <button class="division-btn" onclick="cambiarDivision('det',+1)">+</button>
+          </div>
+          <div class="division-preview">
+            <div class="division-preview-title">Distribución estimada</div>
+            <div class="division-chips" id="chipsDet"><div class="chip">1 archivo completo</div></div>
+          </div>
+        </div>
+      </div>
+      <div id="divisionPending" class="alert warning" style="margin-top:1rem">
+        ⏳ Procesa el archivo primero (Paso 2) para ver la distribución real de registros.
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 4: DESCARGAR -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num" id="num4">4</div>
+      <div>
+        <div class="step-label">Descargar archivos generados</div>
+        <div class="step-desc">Descarga cada parte de CABECERA y DETALLE por separado</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div id="outputPending" class="alert warning">⏳ Procesa el archivo primero para habilitar las descargas.</div>
+      <div id="outputReady" class="hidden">
+
+        <!-- FORMATO DE CARGA (revisión visual) -->
+        <div class="partes-section-title">🔎 FORMATO DE CARGA (revisión)</div>
+        <div class="parte-row" style="margin-bottom:1.25rem">
+          <div class="parte-badge" style="background:var(--amarillo)">XLSX</div>
+          <div class="parte-info" id="metaFormatoCarga">Excel con las 40 columnas del formato de carga completo, para revisar visualmente</div>
+          <button class="btn-parte" onclick="descargarFormatoCarga()">⬇️ Descargar FORMATO_DE_CARGA.xlsx</button>
+        </div>
+
+        <!-- CABECERA partes -->
+        <div class="partes-section-title">📋 CABECERA</div>
+        <div class="partes-grid" id="listaPartesCab"></div>
+
+        <!-- DETALLE partes -->
+        <div class="partes-section-title" style="margin-top:1.25rem">📄 DETALLE</div>
+        <div class="partes-grid" id="listaPartesDet"></div>
+
+        <div class="preview-wrap" style="margin-top:1.25rem">
+          <div class="preview-label">Vista previa — CABECERA (primeras 5 filas)</div>
+          <div id="previewCabecera"></div>
+        </div>
+        <div class="preview-wrap" style="margin-top:1rem">
+          <div class="preview-label">Vista previa — DETALLE (primeras 5 filas)</div>
+          <div id="previewDetalle"></div>
+        </div>
+        <div class="alert success" style="margin-top:1rem">
+          ✅ Archivos listos. Separador: <strong>pipe |</strong> · Decimal: <strong>coma ,</strong> · Codificación: <strong>UTF-8</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+<footer>
+  <strong>Sikaffi & Abogados</strong> · Conversor de Cartera VIVA · Todo el procesamiento ocurre en tu navegador
+</footer>
+
+<script>
+// ─── ESTADO ───
+let filasDatos = [];
+let colIdx = {};
+let cicloFinalVal = null;
+let lineasCabecera = [];  // array de strings (líneas CSV)
+let lineasDetalle  = [];
+let filasFormatoCarga = []; // array de objetos para el Excel intermedio (punto 2)
+let divCab = 1;           // partes para cabecera
+let divDet = 1;           // partes para detalle
+let nombreArchivo = '';
+
+// ─── REGLAS CICLO ───
+const REGLAS_CICLO = [
+  {re:/CARTERA.?ESPECIAL.?DX/i, ciclo:'8', nombre:'CARTERA ESPECIAL DX'},
+  {re:/CARTERA.?ESPECIAL.?RX/i, ciclo:'7', nombre:'CARTERA ESPECIAL RX'},
+  {re:/FTTH/i,                   ciclo:'5', nombre:'FTTH'},
+  {re:/NUMERO.?PROPIO/i,         ciclo:'4', nombre:'NUMERO PROPIO'},
+  {re:/PERIODOS?.?PASADOS?/i,    ciclo:'3', nombre:'PERIODOS PASADOS'},
+  {re:/NORMAL/i,                 ciclo:'1', nombre:'NORMAL'},
+];
+
+// ─── COLS TELÉFONO (todos los "8") ───
+const COLS_TEL = [
+  'NRO_PROPIO_01','NRO_PROPIO_02','NRO_PROPIO_03','NRO_PROPIO_04',
+  'NRO_BENEFICIARIO_01','NRO_BENEFICIARIO_02','NRO_BENEFICIARIO_03',
+  'NRO_REF_INSTALACION_01','NRO_REF_INSTALACION_02',
+  'REFERENCIA1','REFERENCIA2','REFERENCIA3','REFERENCIA4',
+  'SUSCRIPTORES'
+];
+
+// ─── DRAG & DROP ───
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+dropZone.addEventListener('dragover', e=>{e.preventDefault();dropZone.classList.add('drag-over');});
+dropZone.addEventListener('dragleave', ()=>dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e=>{e.preventDefault();dropZone.classList.remove('drag-over');if(e.dataTransfer.files[0])cargarArchivo(e.dataTransfer.files[0]);});
+fileInput.addEventListener('change', e=>{if(e.target.files[0])cargarArchivo(e.target.files[0]);});
+
+// ─── CARGAR ARCHIVO ───
+function cargarArchivo(file) {
+  nombreArchivo = file.name;
+
+  document.getElementById('dropZone').classList.add('hidden');
+  document.getElementById('fileLoaded').classList.remove('hidden');
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileMeta').textContent =
+    `Leyendo archivo (${(file.size/1024/1024).toFixed(1)} MB)... esto puede tardar con archivos grandes ⏳`;
+
+  // Advertencia temprana: archivos por encima de ~70MB suelen exceder el límite
+  // de tamaño de string de JavaScript al descomprimir el XML interno del Excel.
+  const tamanoMB = file.size / 1024 / 1024;
+  if (tamanoMB > 70) {
+    mostrarAdvertenciaTamano(tamanoMB);
+  }
+
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    try {
+      await sleep(10);
+
+      const data = new Uint8Array(e.target.result);
+
+      // Para archivos grandes, leer solo lo necesario. WTF/dense ayuda a reducir memoria.
+      document.getElementById('fileMeta').textContent = 'Abriendo el libro de Excel... ⏳';
+      await sleep(10);
+      const wb = XLSX.read(data, {type:'array', cellDates:false, raw:true, dense:true});
+
+      // Detección de fallo silencioso: el archivo es tan grande que el XML interno
+      // de la hoja excede el límite de string de JavaScript (~512MB). SheetJS no
+      // lanza error en este caso — simplemente deja wb.Sheets vacío.
+      if (wb.SheetNames.length > 0 && Object.keys(wb.Sheets).length === 0) {
+        mostrarError(`Este archivo (${(file.size/1024/1024).toFixed(0)} MB) es DEMASIADO GRANDE para procesarse de una sola vez en el navegador — es un límite del lenguaje JavaScript, no de esta aplicación. La hoja interna del Excel pesa más de lo que el navegador puede convertir a texto. Solución: divide el Excel original en 5-8 partes más pequeñas y procesa cada una por separado. Pídeme ayuda para dividirlo si lo necesitas.`);
+        resetFile();
+        return;
+      }
+
+      const normaliza = s => String(s||'').replace(/^\uFEFF/,'').trim().toUpperCase();
+
+      // ── PASO 1: Identificar la hoja correcta SIN convertir todo a JSON ──
+      // Solo miramos las primeras filas de cada hoja usando el array denso (rápido, sin copiar todo).
+      document.getElementById('fileMeta').textContent = 'Buscando la hoja con datos de cartera... ⏳';
+      await sleep(10);
+
+      let sheetName = null;
+      let headerRowIdx = 0;
+
+      for (const name of wb.SheetNames) {
+        const ws = wb.Sheets[name];
+        if (!ws) continue;
+        // ws['!data'] existe cuando dense:true — es un array de arrays, mucho más rápido de mirar
+        const filasRaw = ws['!data'];
+        if (!filasRaw || filasRaw.length === 0) continue;
+
+        for (let r = 0; r < Math.min(5, filasRaw.length); r++) {
+          const filaArr = filasRaw[r] || [];
+          const tieneId = filaArr.some(cell => cell && normaliza(cell.v) === 'ID_CLIENTE');
+          if (tieneId) { sheetName = name; headerRowIdx = r; break; }
+        }
+        if (sheetName) break;
+      }
+
+      // Fallback: la hoja con más filas (probablemente la de datos reales)
+      if (!sheetName) {
+        let maxFilas = -1;
+        for (const name of wb.SheetNames) {
+          const ws = wb.Sheets[name];
+          const filasRaw = ws['!data'];
+          const n = filasRaw ? filasRaw.length : 0;
+          if (n > maxFilas) { maxFilas = n; sheetName = name; headerRowIdx = 0; }
+        }
+      }
+
+      if (!sheetName) {
+        mostrarError('No se encontró ninguna hoja con datos en el archivo. Hojas detectadas: '+wb.SheetNames.join(', '));
+        resetFile();
+        return;
+      }
+
+      console.log('[Conversor] Hoja detectada:', sheetName, '| Fila de cabecera (índice):', headerRowIdx);
+
+      // ── PASO 2: Convertir SOLO esa hoja a JSON (una única vez) ──
+      document.getElementById('fileMeta').textContent = `Procesando hoja "${sheetName}"... esto puede tardar 10-30 seg en archivos grandes ⏳`;
+      await sleep(10);
+
+      const wsTarget = wb.Sheets[sheetName];
+      let todas = XLSX.utils.sheet_to_json(wsTarget, {header:1, defval:'', raw:true, blankrows:false});
+
+      if (headerRowIdx > 0) todas = todas.slice(headerRowIdx);
+
+      if (!todas || todas.length < 2) {
+        mostrarError('La hoja "'+sheetName+'" no tiene datos suficientes (solo cabecera o vacía).');
+        resetFile();
+        return;
+      }
+
+      await sleep(10);
+
+      console.log('[Conversor] Filas totales leídas:', todas.length, '| Cabeceras:', todas[0]);
+
+      const headers = todas[0].map(h=>String(h||'').replace(/^\uFEFF/,'').trim().toUpperCase());
+      filasDatos = todas.slice(1);
+      colIdx = {};
+      headers.forEach((h,i)=>{ colIdx[h]=i; });
+
+      const faltantes = ['ID_CLIENTE','ID_COBRANZA','PERIODO','DEUDA','SUSCRIPTORES','NIF','CIUDAD','NOMBRE_CLIENTE']
+        .filter(c=>colIdx[c]===undefined);
+      if (faltantes.length>0) {
+        mostrarError('La hoja "'+sheetName+'" no tiene estas columnas: '+faltantes.join(', ')+'. Verifica que sea el archivo de cartera correcto.');
+        resetFile();
+        return;
+      }
+
+      const filas = filasDatos.length;
+      let cicloInfo = null;
+      for (const r of REGLAS_CICLO) { if(r.re.test(nombreArchivo)){cicloInfo=r;break;} }
+
+      document.getElementById('fileMeta').textContent =
+        `${filas.toLocaleString('es-BO')} registros · ${headers.length} columnas · Hoja: ${sheetName}`;
+      document.getElementById('statsBar').classList.remove('hidden');
+      document.getElementById('statFilas').textContent = filas.toLocaleString('es-BO');
+      document.getElementById('statColumnas').textContent = headers.length;
+
+      if (cicloInfo) {
+        cicloFinalVal = cicloInfo.ciclo;
+        document.getElementById('cicloDetectado').classList.remove('hidden');
+        document.getElementById('cicloDetectado').classList.add('detectado');
+        document.getElementById('cicloManual').classList.add('hidden');
+        document.getElementById('cicloBadge').textContent = cicloInfo.ciclo;
+        document.getElementById('cicloNombre').textContent = `Ciclo ${cicloInfo.ciclo} — ${cicloInfo.nombre}`;
+        document.getElementById('statCiclo').textContent = cicloInfo.ciclo;
+      } else {
+        cicloFinalVal = null;
+        document.getElementById('cicloManual').classList.remove('hidden');
+        document.getElementById('cicloDetectado').classList.add('hidden');
+        document.getElementById('statCiclo').textContent = '?';
+      }
+      document.getElementById('num1').className='step-num done';
+      document.getElementById('num1').textContent='✓';
+      document.getElementById('num2').className='step-num active';
+      verificarListo();
+
+    } catch(err) {
+      console.error('[Conversor] Error completo:', err);
+      const esLimiteJS = /string longer than|Invalid string length|RangeError/i.test(err.message) || err instanceof RangeError;
+      if (esLimiteJS) {
+        mostrarError('Este archivo es DEMASIADO GRANDE para procesarse en una sola pasada en el navegador (límite del lenguaje, no de esta app). Divide el Excel original en partes más pequeñas (recomendado: 50,000-70,000 filas por archivo) y procesa cada parte por separado. Avísame si quieres que te ayude a dividirlo.');
+      } else {
+        mostrarError('Error al leer el archivo: ' + err.message);
+      }
+      resetFile();
+    }
+  };
+
+  reader.onerror = function() {
+    mostrarError('No se pudo leer el archivo del disco.');
+    resetFile();
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+
+function onCicloManualChange() {
+  cicloFinalVal = document.getElementById('cicloSelect').value || null;
+  document.getElementById('statCiclo').textContent = cicloFinalVal || '?';
+  verificarListo();
+}
+function verificarListo() {
+  document.getElementById('btnProcesar').disabled = !(filasDatos.length>0 && cicloFinalVal);
+}
+function resetFile() {
+  filasDatos=[]; colIdx={}; cicloFinalVal=null;
+  lineasCabecera=[]; lineasDetalle=[]; filasFormatoCarga=[];
+  ['dropZone'].forEach(id=>document.getElementById(id).classList.remove('hidden'));
+  ['fileLoaded','cicloDetectado','cicloManual','statsBar','progressWrap','logBox','outputReady'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  document.getElementById('outputPending').classList.remove('hidden');
+  document.getElementById('divisionPending').classList.remove('hidden');
+  const btn=document.getElementById('btnProcesar');
+  btn.disabled=true; btn.innerHTML='<span>⚙️</span> Procesar cartera y generar archivos'; btn.style.background='';
+  document.getElementById('num1').className='step-num active'; document.getElementById('num1').textContent='1';
+  document.getElementById('num2').className='step-num';
+  document.getElementById('num3').className='step-num';
+  document.getElementById('num4').className='step-num';
+  document.getElementById('cicloSelect').value=''; fileInput.value='';
+  divCab=1; divDet=1;
+  document.getElementById('numCab').textContent='1';
+  document.getElementById('numDet').textContent='1';
+  actualizarChips('cab'); actualizarChips('det');
+}
+
+// ─── LIMPIEZA ───
+function limpiarTexto(v) {
+  if (v===null||v===undefined||v==='') return '';
+  return String(v).trim().replace(/[\r\n\t]+/g,' ').replace(/\|/g,'').replace(/\s+/g,' ').trim();
+}
+
+// Extrae números de teléfono limpios de un valor
+// Maneja: P70634634 → 70634634, 65167924-70681155-70681175 → [65167924, 70681155, 70681175]
+function extraerNumerosDeValor(v) {
+  if (v===null||v===undefined||v==='') return [];
+  const str = String(v).trim();
+  // Separar por cualquier carácter no-dígito que actúe como separador (guión, coma, punto y coma, espacio, /)
+  // Pero NO separar si el guión está dentro de un número de 8+ dígitos (no pasa en Bolivia)
+  const partes = str.split(/[\s,;\/\\+\-]+/);
+  const resultado = [];
+  for (const p of partes) {
+    const soloDigitos = p.replace(/[^0-9]/g,'').trim();
+    if (soloDigitos.length >= 6) resultado.push(soloDigitos);
+  }
+  return resultado;
+}
+
+function obtenerTelefonos(fila) {
+  // Recolectar todos los números de los 14 campos, con duplicados permitidos (igual que el sistema)
+  const todos = [];
+  const vistos = new Set();
+  for (const col of COLS_TEL) {
+    const idx = colIdx[col];
+    if (idx===undefined) continue;
+    const nums = extraerNumerosDeValor(fila[idx]);
+    for (const n of nums) {
+      if (!vistos.has(n)) { vistos.add(n); todos.push(n); }
+    }
+  }
+  return todos.join(', ');
+}
+
+function obtenerCelular(fila) {
+  // Suscriptores → primer número limpio → va a CELULAR
+  const idx = colIdx['SUSCRIPTORES'];
+  if (idx===undefined) return '';
+  const nums = extraerNumerosDeValor(fila[idx]);
+  return nums.length>0 ? nums[0] : '';
+}
+
+function val(fila, col) {
+  const idx = colIdx[col];
+  if (idx===undefined) return '';
+  return limpiarTexto(fila[idx]);
+}
+
+// Convierte número a formato boliviano con COMA decimal
+function formatoMonto(v) {
+  if (v===null||v===undefined||v==='') return '';
+  const str = String(v).trim();
+  // Si ya tiene coma, devolver limpio
+  if (str.includes(',')) return str.replace(/\./g,''); // quitar punto de miles si hubiera
+  // Si tiene punto decimal, reemplazar por coma
+  if (str.includes('.')) return str.replace('.',',');
+  return str;
+}
+
+// ─── PROCESAR ───
+async function procesarCartera() {
+  const btn = document.getElementById('btnProcesar');
+  btn.disabled=true; btn.innerHTML='<span>⏳</span> Procesando...';
+
+  const logBox = document.getElementById('logBox');
+  logBox.classList.remove('hidden'); logBox.innerHTML='';
+  document.getElementById('progressWrap').classList.remove('hidden');
+
+  const log=(msg,tipo='info')=>{const s=document.createElement('span');s.className='log-line '+tipo;s.textContent=msg;logBox.appendChild(s);logBox.scrollTop=logBox.scrollHeight;};
+  const setProg=(pct,msg)=>{document.getElementById('progressFill').style.width=pct+'%';document.getElementById('progressPct').textContent=pct+'%';document.getElementById('progressMsg').textContent=msg;};
+
+  log(`► Archivo: "${nombreArchivo}"`, 'info');
+  log(`► Ciclo: ${cicloFinalVal}`, 'ok');
+  log(`► Filas a procesar: ${filasDatos.length.toLocaleString('es-BO')}`, 'info');
+  await sleep(20);
+
+  const cabeceraMap = new Map();
+  const detalleLineas = [];
+  filasFormatoCarga = [];
+  const NOMBRES_CICLO = {'1':'NORMAL','3':'PERIODOS PASADOS','4':'NUMERO PROPIO','5':'FTTH','7':'CARTERA ESPECIAL RX','8':'CARTERA ESPECIAL DX'};
+  const total = filasDatos.length;
+  const BATCH = 2000;
+
+  for (let i=0; i<total; i+=BATCH) {
+    const lote = filasDatos.slice(i, i+BATCH);
+    for (const fila of lote) {
+      const idCliente  = val(fila,'ID_CLIENTE');
+      const nombre     = val(fila,'NOMBRE_CLIENTE');
+      const idCobranza = val(fila,'ID_COBRANZA');
+      const periodo    = val(fila,'PERIODO');
+      const nif        = val(fila,'NIF');
+      const ciudad     = val(fila,'CIUDAD');
+      const celular    = obtenerCelular(fila);
+      const telefonos  = obtenerTelefonos(fila);
+      const cantPagadas = val(fila,'CANT_PAGADAS');
+
+      // Monto con COMA decimal (formato boliviano)
+      const idx_deuda = colIdx['DEUDA'];
+      const deudaRaw  = idx_deuda!==undefined ? filasDatos[0] && fila[idx_deuda] : '';
+      const monto     = formatoMonto(fila[idx_deuda]);
+
+      // ── CABECERA ──
+      // Estructura real MI SISTEMA:
+      // C0:ID_CLIENTE | C1:NOMBRE | C2:NOMBRE(repetido) | C3:NIF | C4:vacío | C5:CIUDAD | C6:TELF_REF
+      if (!cabeceraMap.has(idCliente)) {
+        cabeceraMap.set(idCliente, [
+          idCliente,   // C0
+          nombre,      // C1
+          nombre,      // C2 — nombre repetido
+          nif,         // C3
+          '',          // C4 — vacío
+          ciudad,      // C5
+          telefonos,   // C6 — todos los teléfonos
+        ]);
+      }
+
+      // ── DETALLE ──
+      // Estructura real MI SISTEMA:
+      // C0:ID_CLIENTE | C1:PERIODO | C2:ID_COBRANZA | C3:MONTO(coma) | C4:CELULAR | C5:CICLO
+      detalleLineas.push([
+        idCliente,    // C0
+        periodo,      // C1
+        idCobranza,   // C2
+        monto,        // C3 — con coma decimal
+        celular,      // C4
+        cicloFinalVal,// C5
+      ]);
+
+      // ── FORMATO DE CARGA (punto 2 — 40 columnas, para revisión visual ──
+      filasFormatoCarga.push({
+        PERIODO_FACTURA: periodo,
+        ID_CLIENTE: idCliente,
+        ID_COBRANZA: idCobranza,
+        REPRESENTANTE_LEGAL: nombre,
+        NOMBRE_CLIENTE: nombre,
+        CI: nif,
+        DIRECCION: '',
+        EMAIL: '',
+        CIUDAD: ciudad,
+        TELF_REFERENCIA: telefonos,
+        TIPO_CLIENTE: '',
+        METODO_PAGO: '',
+        MONTO_FACTURA: monto,
+        CELULAR: celular,
+        CICLO: cicloFinalVal,
+        CICLO_DESCRIPCION: NOMBRES_CICLO[cicloFinalVal] || '',
+        FACTURAS_PAGADAS: cantPagadas,
+        CORPORATIVO: '',
+        FECHA_NACIMIENTO: '',
+        ANO_NACIMIENTO: '',
+        EDAD: '',
+        RANGO_EDAD: '',
+        SERVICIO_ROAMING: '',
+        BURO_INFORMACION: '',
+        pfp: '',
+        bibf: '',
+        CARTERA_CORP: '',
+        TIPO_DE_GESTION: '',
+        MONTO_BURO: '',
+        TIPO_REP_BURO: '',
+        cartera_asignada_financiamiento: '',
+        FINANCIAMIENTO2: '',
+        conc: '',
+        num_instalacion: '',
+        plan_wow: '',
+        fon: '',
+        viva_app: '',
+        PORTADO: '',
+        coin: '',
+        dic: '',
+        rx_canales: '',
+        pfp2: '',
+      });
+    }
+    const pct = Math.round(5+(Math.min(i+BATCH,total)/total)*80);
+    setProg(pct, `Procesando ${Math.min(i+BATCH,total).toLocaleString('es-BO')} de ${total.toLocaleString('es-BO')}...`);
+    await sleep(0);
+  }
+
+  log(`► ${cabeceraMap.size.toLocaleString('es-BO')} clientes únicos → CABECERA`, 'ok');
+  log(`► ${detalleLineas.length.toLocaleString('es-BO')} facturas → DETALLE`, 'ok');
+  setProg(88,'Generando CSV...'); await sleep(20);
+
+  // Línea termina en pipe (igual que el sistema original)
+  const toLinea = campos => campos.join('|') + '|';
+  lineasCabecera = Array.from(cabeceraMap.values()).map(toLinea);
+  lineasDetalle  = detalleLineas.map(toLinea);
+
+  setProg(100,'¡Listo!');
+  log('✓ Proceso completado exitosamente.','ok');
+
+  // Actualizar chips de división con datos reales
+  document.getElementById('divisionPending').classList.add('hidden');
+  actualizarChips('cab');
+  actualizarChips('det');
+
+  document.getElementById('outputPending').classList.add('hidden');
+  document.getElementById('outputReady').classList.remove('hidden');
+  document.getElementById('num3').className='step-num active';
+  document.getElementById('num4').className='step-num active';
+
+  mostrarPreview('previewCabecera', lineasCabecera.slice(0,5), ['ID_CLIENTE','NOMBRE','NOMBRE','NIF/CI','—','CIUDAD','TELF_REF']);
+  mostrarPreview('previewDetalle',  lineasDetalle.slice(0,5),  ['ID_CLIENTE','PERIODO','ID_COBRANZA','MONTO','CELULAR','CICLO']);
+
+  document.getElementById('metaFormatoCarga').textContent =
+    `${filasFormatoCarga.length.toLocaleString('es-BO')} filas · 40 columnas · formato completo de carga`;
+
+  // Generar botones de descarga
+  renderizarPartes();
+
+  btn.innerHTML='<span>✓</span> Archivos generados correctamente'; btn.style.background='var(--verde-vivo)';
+  document.querySelector('.step:last-child').scrollIntoView({behavior:'smooth'});
+}
+
+function mostrarPreview(id, lineas, cols) {
+  const cont=document.getElementById(id);
+  if(!lineas.length){cont.innerHTML='<p style="padding:10px;font-size:12px;color:#888">Sin datos</p>';return;}
+  let html='<table class="preview-table"><thead><tr>';
+  cols.forEach(c=>{html+=`<th>${esc(c)}</th>`;});
+  html+='</tr></thead><tbody>';
+  lineas.forEach(l=>{
+    const campos=l.split('|'); campos.pop();
+    html+='<tr>'+campos.map(c=>`<td title="${esc(c)}">${esc(c||'—')}</td>`).join('')+'</tr>';
+  });
+  html+='</tbody></table>';
+  cont.innerHTML=html;
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ─── DIVISIÓN ───
+function cambiarDivision(tipo, delta) {
+  if (tipo==='cab') {
+    divCab = Math.max(1, Math.min(20, divCab + delta));
+    document.getElementById('numCab').textContent = divCab;
+  } else {
+    divDet = Math.max(1, Math.min(20, divDet + delta));
+    document.getElementById('numDet').textContent = divDet;
+  }
+  actualizarChips(tipo);
+  if (lineasCabecera.length > 0) renderizarPartes();
+}
+
+function actualizarChips(tipo) {
+  const esCab = tipo==='cab';
+  const n     = esCab ? divCab : divDet;
+  const total = esCab ? lineasCabecera.length : lineasDetalle.length;
+  const cont  = document.getElementById(esCab ? 'chipsCab' : 'chipsDet');
+
+  if (total === 0) {
+    cont.innerHTML = n===1
+      ? '<div class="chip">1 archivo completo</div>'
+      : Array.from({length:n},(_,i)=>`<div class="chip">Parte ${i+1}</div>`).join('');
+    return;
+  }
+
+  const base = Math.floor(total / n);
+  const resto = total % n;
+  let html = '';
+  for (let i=0; i<n; i++) {
+    const cant = base + (i < resto ? 1 : 0);
+    html += `<div class="chip">${i+1}: ${cant.toLocaleString('es-BO')} reg</div>`;
+  }
+  cont.innerHTML = html;
+}
+
+function dividirEnPartes(lineas, n) {
+  const partes = [];
+  const base  = Math.floor(lineas.length / n);
+  const resto = lineas.length % n;
+  let idx = 0;
+  for (let i=0; i<n; i++) {
+    const cant = base + (i < resto ? 1 : 0);
+    partes.push(lineas.slice(idx, idx + cant));
+    idx += cant;
+  }
+  return partes;
+}
+
+function renderizarPartes() {
+  const contCab = document.getElementById('listaPartesCab');
+  const contDet = document.getElementById('listaPartesDet');
+
+  const partesCab = dividirEnPartes(lineasCabecera, divCab);
+  const partesDet = dividirEnPartes(lineasDetalle,  divDet);
+
+  contCab.innerHTML = partesCab.map((p,i) => {
+    const sz = (new Blob([p.join('\r\n')]).size/1024).toFixed(1);
+    return `<div class="parte-row">
+      <div class="parte-badge">CAB ${i+1}/${divCab}</div>
+      <div class="parte-info">${p.length.toLocaleString('es-BO')} registros · ${sz} KB</div>
+      <button class="btn-parte" onclick="descargarParte('cab',${i})">⬇️ Descargar</button>
+    </div>`;
+  }).join('');
+
+  contDet.innerHTML = partesDet.map((p,i) => {
+    const sz = (new Blob([p.join('\r\n')]).size/1024).toFixed(1);
+    return `<div class="parte-row">
+      <div class="parte-badge det">DET ${i+1}/${divDet}</div>
+      <div class="parte-info">${p.length.toLocaleString('es-BO')} registros · ${sz} KB</div>
+      <button class="btn-parte" onclick="descargarParte('det',${i})">⬇️ Descargar</button>
+    </div>`;
+  }).join('');
+}
+
+function descargarFormatoCarga() {
+  if (!filasFormatoCarga.length) return;
+
+  const columnas = [
+    'PERIODO_FACTURA','ID_CLIENTE','ID_COBRANZA','REPRESENTANTE_LEGAL','NOMBRE_CLIENTE',
+    'CI','DIRECCION','EMAIL','CIUDAD','TELF_REFERENCIA','TIPO_CLIENTE','METODO_PAGO',
+    'MONTO_FACTURA','CELULAR','CICLO','CICLO_DESCRIPCION','FACTURAS_PAGADAS','CORPORATIVO',
+    'FECHA_NACIMIENTO','ANO_NACIMIENTO','EDAD','RANGO_EDAD','SERVICIO_ROAMING','BURO_INFORMACION',
+    'pfp','bibf','CARTERA_CORP','TIPO_DE_GESTION','MONTO_BURO','TIPO_REP_BURO',
+    'cartera_asignada_financiamiento','FINANCIAMIENTO2','conc','num_instalacion','plan_wow',
+    'fon','viva_app','PORTADO','coin','dic','rx_canales','pfp2'
+  ];
+
+  const ws = XLSX.utils.json_to_sheet(filasFormatoCarga, {header: columnas});
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'FORMATO_CARGA');
+  XLSX.writeFile(wb, 'FORMATO_DE_CARGA.xlsx');
+}
+
+function descargarParte(tipo, idx) {
+  const esCab  = tipo==='cab';
+  const n      = esCab ? divCab : divDet;
+  const lineas = esCab ? lineasCabecera : lineasDetalle;
+  const partes = dividirEnPartes(lineas, n);
+  const parte  = partes[idx];
+  const sufijo = n===1 ? '' : `_PARTE${idx+1}de${n}`;
+  const nombre = (esCab ? 'CABECERA' : 'DETALLE') + sufijo + '.csv';
+  const contenido = parte.join('\r\n');
+  const blob = new Blob([contenido], {type:'text/csv;charset=utf-8;'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a'); a.href=url; a.download=nombre; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function mostrarAdvertenciaTamano(mb) {
+  document.querySelectorAll('.alerta-tamano').forEach(e=>e.remove());
+  const div=document.createElement('div');
+  div.className='alert warning alerta-tamano'; div.style.marginTop='1rem';
+  div.textContent = `⚠️ Archivo de ${mb.toFixed(0)} MB. Archivos por encima de ~70-80 MB pueden exceder un límite del navegador y fallar. Si esto ocurre, divide el Excel original en partes más pequeñas (50,000-70,000 filas cada una).`;
+  document.getElementById('dropZone').closest('.step-body').appendChild(div);
+}
+
+function mostrarError(msg){
+  document.querySelectorAll('.alerta-error').forEach(e=>e.remove());
+  const div=document.createElement('div');
+  div.className='alert error alerta-error'; div.style.marginTop='1rem';
+  div.textContent='❌ '+msg;
+  document.getElementById('dropZone').closest('.step-body').appendChild(div);
+}
+</script>
+</body>
+</html>
