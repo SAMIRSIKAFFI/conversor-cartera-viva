@@ -276,9 +276,9 @@
         <!-- FORMATO DE CARGA (revisión visual) -->
         <div class="partes-section-title">🔎 FORMATO DE CARGA (revisión)</div>
         <div class="parte-row" style="margin-bottom:1.25rem">
-          <div class="parte-badge" style="background:var(--amarillo)">XLSX</div>
+          <div class="parte-badge" style="background:var(--amarillo)">CSV</div>
           <div class="parte-info" id="metaFormatoCarga">Excel con las 40 columnas del formato de carga completo, para revisar visualmente</div>
-          <button class="btn-parte" onclick="descargarFormatoCarga()">⬇️ Descargar FORMATO_DE_CARGA.xlsx</button>
+          <button class="btn-parte" onclick="descargarFormatoCarga()">⬇️ Descargar FORMATO_DE_CARGA.csv</button>
         </div>
 
         <!-- CABECERA partes -->
@@ -858,10 +858,29 @@ function descargarFormatoCarga() {
     'fon','viva_app','PORTADO','coin','dic','rx_canales','pfp2'
   ];
 
-  const ws = XLSX.utils.json_to_sheet(filasFormatoCarga, {header: columnas});
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'FORMATO_CARGA');
-  XLSX.writeFile(wb, 'FORMATO_DE_CARGA.xlsx');
+  // Generar CSV (mucho más liviano que XLSX para archivos grandes)
+  // Separador: punto y coma para que Excel en español lo abra bien
+  const sep = ';';
+  const lineas = [columnas.join(sep)];
+  for (const fila of filasFormatoCarga) {
+    const vals = columnas.map(c => {
+      const v = String(fila[c] ?? '');
+      // Si el valor contiene el separador o saltos de línea, encerrarlo entre comillas
+      return v.includes(sep) || v.includes('\n') || v.includes('"')
+        ? '"' + v.replace(/"/g, '""') + '"'
+        : v;
+    });
+    lineas.push(vals.join(sep));
+  }
+
+  const contenido = lineas.join('\r\n');
+  const blob = new Blob([contenido], {type:'text/csv;charset=utf-8;'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'FORMATO_DE_CARGA.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function descargarParte(tipo, idx) {
